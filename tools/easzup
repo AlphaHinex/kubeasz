@@ -19,6 +19,30 @@ export KUBEASZ_VER=2.2.1
 export K8S_BIN_VER=v1.18.3
 export EXT_BIN_VER=0.5.2
 export SYS_PKG_VER=0.3.3
+export K8S_OFFLINE_PACK=k8s-1.18.3-offline.tar
+
+function uncompress(){
+
+  echo "[解压]开始解压离线包..."
+
+    [ -f ./$K8S_OFFLINE_PACK ] && tar zxvf $K8S_OFFLINE_PACK -C /etc
+
+  echo "[modify]修改配置文件内容..."
+
+    sed -i 's/^INSTALL_SOURCE.*$/INSTALL_SOURCE: "offline"/g' /etc/ansible/roles/chrony/defaults/main.yml
+    sed -i 's/^INSTALL_SOURCE.*$/INSTALL_SOURCE: "offline"/g' /etc/ansible/roles/ex-lb/defaults/main.yml
+    sed -i 's/^INSTALL_SOURCE.*$/INSTALL_SOURCE: "offline"/g' /etc/ansible/roles/kube-node/defaults/main.yml
+    sed -i 's/^INSTALL_SOURCE.*$/INSTALL_SOURCE: "offline"/g' /etc/ansible/roles/prepare/defaults/main.yml
+
+  echo "[ansible]安装ansible..."
+
+    [ -d ansible ] && cd ansible && sh install.sh && cd -
+
+  echo "[ssh]生成公私钥..."
+
+    ssh-keygen -t rsa -b 2048 -N '' -f ~/.ssh/id_rsa
+
+}
 
 function download_docker() {
   echo -e "[INFO] \033[33mdownloading docker binaries\033[0m $DOCKER_VER"
@@ -333,6 +357,9 @@ function main() {
           ACTION="get_sys_pkg"
           ;;
         S)
+          uncompress
+          download_docker
+          install_docker
           ACTION="start_kubeasz_docker"
           ;;
         d)
